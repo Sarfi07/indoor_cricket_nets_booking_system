@@ -3,78 +3,62 @@ import { generateToken } from "./jwtUtils.js";
 import "dotenv/config";
 import prisma from "./prismaClient.js";
 
-// const authMiddlewareJwt = (req, res, next) => {
-//   passport.authenticate("jwt", { session: false }, (err, user, info) => {
-//     if (err) {
-//       return next(err);
-//     }
-
-//     if (!user) {
-//       return res.status(401).send("Unauthorized");
-//     }
-
-//     req.user = user;
-//     next();
-//   })(req, res, next);
-// };
-
-// const authMiddlewareLocal = (req, res, next) => {
-//   passport.authenticate("local", { session: false }, (err, user, info) => {
-//     if (err) {
-//       return next(err);
-//     }
-
-//     if (!user) {
-//       return res.status(401).send("Unauthorized");
-//     }
-
-//     req.user = user;
-//     next();
-//   })(req, res, next);
-// };
-
 const authMiddleware = (strategyName) => {
   return (req, res, next) => {
+    // Do not use failureRedirect for API flows
     passport.authenticate(
       strategyName,
-      { session: false, failureRedirect: "/login" },
+      { session: false },
       async (err, user, info) => {
-        if (err) {
-          console.error("Authentication error:", err);
-          return next(err);
-        }
+        try {
+          if (err) {
+            console.error("Authentication error:", err);
+            return next(err);
+          }
 
-        if (!user) {
-          console.log("No user found, sending 401");
-          return res.status(401).send("Unauthorized");
-        }
+          if (!user) {
+            console.log("No user found, auth info:", info);
+            return res.status(401).json({ message: "Unauthorized", info });
+          }
 
-        console.log("User authenticated:", user);
-        const userObj = await prisma.user.findFirst({
-          where: {
-            id: user.id,
-          },
-          select: {
-            id: true,
-            name: true,
-            username: true,
-          },
-        });
+          // fetch minimal user from DB
+          const userObj = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: {
+              id: true,
+              name: true,
+              username: true,
+              email: true,
+              role: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          });
 
-        const token = generateToken(user);
-        console.log(token);
+          if (strategyName === "local") {
+            // local login => return token + user
+            const token = generateToken(userObj || user);
+            return res.status(200).json({ token, user: userObj });
+          }
 
-        if (strategyName === "local") {
-          return res.json({ token, userObj });
-        } else {
+          if (strategyName === "jwt") {
+            // JWT strategy => attach user and continue to next middleware/route
+            req.user = userObj || user;
+            return next();
+          }
+
+          // other strategies (OAuth) => redirect to frontend with token
+          const token = generateToken(userObj || user);
           return res.redirect(
-            `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`
+            `${process.env.FRONTEND_URL}/oauth-callback?token=${encodeURIComponent(token)}`
           );
+        } catch (e) {
+          console.error("Unexpected error in auth callback:", e);
+          return res.status(500).json({ message: "Server error during authentication" });
         }
       }
-    )(req, res, next); // Ensure authenticate is invoked with req, res, next
+    )(req, res, next);
   };
 };
 
-// export { authMiddlewareJwt, authMiddlewareLocal };
 export default authMiddleware;

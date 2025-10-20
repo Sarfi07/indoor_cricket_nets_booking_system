@@ -16,24 +16,31 @@ app.use(logger("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-
 app.use(cors());
 app.use(passport.initialize());
 app.use("/", indexRouter);
 
-// catch 404 and forward to error handler
-app.use((req, res, next) => {
-  next(createError(404));
+// catch 404 and return JSON
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Not Found",
+    message: `Cannot ${req.method} ${req.originalUrl}`,
+  });
 });
 
-// error handler
+// error handler — return JSON and log server errors
 app.use((err, req, res, next) => {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
+  const status = err.status || 500;
+  const isServerError = status >= 500;
+  console.error(err); // log full error
 
-  // render the error page
-  res.status(err.status || 500);
+  res.status(status).json({
+    error: err.name || "Error",
+    message:
+      req.app.get("env") === "development" || !isServerError
+        ? err.message
+        : "Internal Server Error",
+  });
 });
 
 InitializeWSServer(server);
