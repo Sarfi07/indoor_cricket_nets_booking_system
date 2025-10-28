@@ -1,9 +1,12 @@
-import Homepage from "./components/pages/Homepage";
+import { RouterProvider } from "react-router-dom";
+import router from "@/routes/AppRoutes";
 
 function App() {
   return (
-    <Homepage />
-  )
+    <div>
+      <RouterProvider router={router} />
+    </div>
+  );
 }
 
-export default App
+export default App;
