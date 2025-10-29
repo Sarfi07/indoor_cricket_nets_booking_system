@@ -22,7 +22,7 @@ export default function SignupPage() {
     const b_url = import.meta.env.VITE_BACKEND_URL;
 
     try {
-      const res = await fetch(`${b_url}`, {
+      const res = await fetch(`${b_url}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
