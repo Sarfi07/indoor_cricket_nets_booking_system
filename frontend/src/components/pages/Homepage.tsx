@@ -15,6 +15,7 @@ import {
 
 import Navbar from "../layout/Navbar";
 import Footer from "../layout/Footer";
+import { User } from "lucide-react";
 
 interface Net {
   id: string;
@@ -70,7 +71,7 @@ export default function Homepage() {
       {/* Hero */}
       <section className="container mx-auto px-6 py-12 flex flex-col items-center text-center">
         <h2 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
-          Practice Whenever You Want
+          Practice Whenever You Want <h2>{User.name}</h2>
         </h2>
         <p className="max-w-2xl text-muted-foreground mb-6">
           Quickly find available slots, invite teammates, and manage bookings — all in one simple app.
