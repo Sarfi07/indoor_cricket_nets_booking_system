@@ -81,17 +81,25 @@ export const signupUser = asyncHandler(async (req, res) => {
 
 // @desc Verify JWT Token
 export const verifyUserToken = asyncHandler(async (req, res) => {
-  const { token } = req.body;
+  const authHeader = req.headers.authorization;
+  console.log("Verifying token:", authHeader);
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Authorization header missing or malformed." });
+  }
+
+  const token = authHeader.split(" ")[1];
 
   try {
-    if (!token) return res.json({ success: false, error: "Token missing" });
-
     const decoded = verifyToken(token);
-    if (decoded) return res.json({ success: true });
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
-    return res.json({ success: false });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    return res.json({ valid: true, user });
   } catch (err) {
-    return res.json({ success: false, error: err.message });
+    return res.status(401).json({ valid: false, message: "Invalid or expired token.", error: err.message });
   }
 });
 
@@ -122,5 +130,6 @@ export const getDashboard = (req, res) => {
 
 // @desc Default route
 export const getAuthRoot = (req, res) => {
+  // get all user details except password
   res.json({ message: "Local auth route" });
 };

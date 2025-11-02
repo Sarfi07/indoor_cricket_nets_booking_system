@@ -13,7 +13,6 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
       username: true,
       name: true,
       email: true,
-      profileImage: true,
       createdAt: true,
     },
   });
@@ -40,7 +39,6 @@ export const updateProfile = asyncHandler(async (req, res) => {
       name: true,
       email: true,
       bio: true,
-      profileImage: true,
     },
   });
 

@@ -1,158 +1,155 @@
 import { useEffect, useState } from "react";
-// import axios from "axios";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter,
 } from "@/components/ui/card";
-
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import Navbar from "../layout/Navbar";
 import Footer from "../layout/Footer";
-import { User } from "lucide-react";
 
-interface Net {
+interface Booking {
+  id: string;
+  netName: string;
+  bookingDate: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
+
+interface User {
   id: string;
   name: string;
-  location: string;
-  isAvailable: boolean;
-  price30: number;
-  price60: number;
+  email: string;
 }
 
 export default function Homepage() {
-  const [nets, setNets] = useState<Net[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchNets = async () => {
-      try {
-        // const res = await axios.get("/api/nets");
-        // setNets(res.data);
-        const netInfo = [{
-            id: "1",
-            name: "Nexa X Indoor Cricket Net",
-            location: "Downtown",
-            isAvailable: true,
-            price30: 150,
-            price60: 250,
-          },
-          {
-            id: "2",
-            name: "Nexa X Pro Cricket Net",
-            location: "Uptown",
-            isAvailable: false,
-            price30: 200,
-            price60: 350,
-        }]
+    // ✅ Get user from localStorage
+    const stored = localStorage.getItem("user");
 
-        setNets(netInfo);
-      } catch (error) {
-        console.error("Failed to load nets:", error);
+    if (!stored) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(stored);
+      // Support both { user, token } and plain user object
+      setUser(parsed.user || parsed);
+    } catch {
+      console.error("Invalid user format in localStorage");
+      localStorage.removeItem("user");
+      navigate("/login");
+      return;
+    }
+
+    // ✅ Fetch user bookings
+    const fetchBookings = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/bookings/my`, {
+          credentials: "include",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+           },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch bookings");
+
+        const data = await res.json();
+        console.log("Fetched bookings:", data);
+        // Show only 3 most recent bookings
+        setBookings(data.slice(0, 3));
+      } catch (err) {
+        console.error("Failed to load bookings:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNets();
-  }, []);
+    fetchBookings();
+  }, [navigate]);
+
+  if (loading) {
+    return <div className="h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      {/* Navbar */}
+    <div className="mt-12 min-h-screen bg-slate-50 flex flex-col">
       <Navbar />
 
-      {/* Hero */}
-      <section className="container mx-auto px-6 py-12 flex flex-col items-center text-center">
-        <h2 className="text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
-          Practice Whenever You Want <h2>{User.name}</h2>
-        </h2>
-        <p className="max-w-2xl text-muted-foreground mb-6">
-          Quickly find available slots, invite teammates, and manage bookings — all in one simple app.
+      {/* Hero Section */}
+      <section className="container mx-auto px-6 py-12 text-center">
+        <h1 className="text-4xl sm:text-5xl font-extrabold mb-3">
+          Welcome back, {user?.name || "Player"} 👋
+        </h1>
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          Manage your bookings, view schedules, and reserve nets instantly.
         </p>
 
-            {/* if the user is logged in the this should be hidden */}
-        <div className="flex gap-3">
-          <Button variant="default">Get Started</Button>
+        <div className="mt-6 flex flex-wrap justify-center gap-4">
+          <Button onClick={() => navigate("/my-bookings")} variant="default">
+            View All Bookings
+          </Button>
+          <Button onClick={() => navigate("/book")} variant="secondary">
+            Book a Slot
+          </Button>
         </div>
       </section>
 
       <Separator />
 
-      {/* Available Nets Section */}
-      <section className="container mx-auto px-6 py-12">
-        <h3 className="text-2xl font-semibold mb-8 text-center">Available Nets</h3>
-        {loading ? (
-          <p className="text-center text-muted-foreground">Loading nets...</p>
-        ) : nets.length === 0 ? (
-          <p className="text-center text-muted-foreground">No nets available right now.</p>
+      {/* My Bookings */}
+      <section className="container mx-auto px-6 py-10 flex-1">
+        <h2 className="text-2xl font-semibold mb-6">My Recent Bookings</h2>
+
+        {bookings.length === 0 ? (
+          <p className="text-muted-foreground">
+            You don’t have any bookings yet. Go ahead and book your first slot!
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {nets.map((net) => (
-              <Card
-                key={net.id}
-                className="hover:shadow-lg transition-all border-gray-200 dark:border-gray-700"
-              >
+            {bookings.map((booking) => (
+              <Card key={booking.id} className="hover:shadow-md transition">
                 <CardHeader>
-                  <CardTitle>{net.name}</CardTitle>
-                  <CardDescription>{net.location}</CardDescription>
+                  <CardTitle>{booking.netName}</CardTitle>
+                  <CardDescription>
+                    {new Date(booking.bookingDate).toLocaleDateString()}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm mb-2">
-                    <strong>30 mins:</strong> ₹{net.price30}
+                  <p>
+                    <strong>Time:</strong> {booking.startTime} - {booking.endTime}
                   </p>
-                  <p className="text-sm">
-                    <strong>60 mins:</strong> ₹{net.price60}
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span
+                      className={`${
+                        booking.status === "Confirmed"
+                          ? "text-green-600"
+                          : "text-gray-600"
+                      }`}
+                    >
+                      {booking.status}
+                    </span>
                   </p>
                 </CardContent>
-                <CardFooter className="flex justify-between items-center">
-                  <Badge variant={net.isAvailable ? "default" : "secondary"}>
-                    {net.isAvailable ? "Available" : "Booked"}
-                  </Badge>
-                  <Button
-                    size="sm"
-                    disabled={!net.isAvailable}
-                    className="bg-gray-700 hover:bg-gray-800"
-                  >
-                    Book Now
-                  </Button>
-                </CardFooter>
               </Card>
             ))}
           </div>
         )}
       </section>
 
-      <Separator />
-
-      {/* Newsletter / Contact */}
-      <section className="container mx-auto px-6 py-10 flex-1">
-        <Card className="max-w-3xl mx-auto">
-          <CardHeader>
-            <CardTitle>Stay in the Loop</CardTitle>
-            <CardDescription>Join our mailing list for updates and offers.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={(e) => e.preventDefault()}
-              className="flex flex-col sm:flex-row gap-3"
-            >
-              <Input placeholder="Your email" aria-label="Email" />
-              <Button type="submit" className="sm:shrink-0">
-                Subscribe
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Footer */}
       <Footer />
     </div>
   );

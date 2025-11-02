@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setToken } from "@/lib/auth";
 
+
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +35,9 @@ const LoginPage: React.FC = () => {
       setError("");
 
       setToken(user.token);
+      
+      // Save user info as an object
+      localStorage.setItem("user", JSON.stringify(user.user));
       alert("Login successful!");
       navigate("/home")
 

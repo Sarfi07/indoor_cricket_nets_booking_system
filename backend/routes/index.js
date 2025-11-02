@@ -14,7 +14,7 @@ router.get("/", function (req, res, next) {
 
 router.use("/api/auth", authRouter);
 router.use("/api/bookings", bookingsRoutes);
-router.use("/api/users", userRouter);
+router.use("/api/user", userRouter);
 router.use("/api/nets", netRoutes);
 
 export default router;
