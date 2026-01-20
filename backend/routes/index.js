@@ -3,9 +3,19 @@ import authRouter from "./authRoutes.js";
 import userRouter from "./userRoutes.js";
 import bookingsRoutes  from './bookingsRoutes.js'
 import netRoutes from "./netRoutes.js";
-import passport from "../config/passport.js";
+import { pool } from "../db.js";
 
 const router = express.Router();
+
+router.get('/health', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT 1');
+    res.json({ status: 'ok', db: result.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /* GET home page. */
 router.get("/", function (req, res, next) {

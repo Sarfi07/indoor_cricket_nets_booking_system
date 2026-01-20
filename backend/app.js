@@ -47,6 +47,8 @@ app.use((err, req, res, next) => {
 });
 
 InitializeWSServer(server);
+
+
 server.listen(3054, () => {
   console.log("Server is running on port 3054");
 });

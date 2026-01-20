@@ -22,14 +22,26 @@ export const createBooking = asyncHandler(async (req, res) => {
   const { netId, date, startTime, duration } = req.body;
   const userId = req.user.id;
 
-  const start = new Date(startTime);
+  if (!netId || !date || !startTime || !duration) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  if (duration <= 0 || duration > 240) {
+    return res.status(400).json({ message: "Invalid duration" });
+  }
+
+  // Combine date + time (UTC)
+  const start = new Date(`${date}T${startTime}:00.000Z`);
   const end = new Date(start.getTime() + duration * 60000);
 
-  // Check for overlap
+  if (isNaN(start.getTime())) {
+    return res.status(400).json({ message: "Invalid date or time format" });
+  }
+
+  // Overlap check
   const overlap = await prisma.booking.findFirst({
     where: {
-      netId: Number(netId),
-      date: new Date(date),
+      netId: netId,
       AND: [
         { startTime: { lt: end } },
         { endTime: { gt: start } },
@@ -44,18 +56,20 @@ export const createBooking = asyncHandler(async (req, res) => {
   const booking = await prisma.booking.create({
     data: {
       userId,
-      netId: Number(netId),
-      date: new Date(date),
+      netId: netId,
       startTime: start,
       endTime: end,
-      duration,
+      duration: parseInt(duration),
+      date: new Date(date),
     },
   });
 
-  res.json(booking);
+  res.status(201).json(booking);
 });
 
+
 export const getMyBookings = asyncHandler(async (req, res) => {
+  console.log('reached')
   const userId = req.user.id;
   console.log("Fetching bookings for user ID:", userId);
   const bookings = await prisma.booking.findMany({
