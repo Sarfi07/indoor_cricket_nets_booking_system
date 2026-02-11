@@ -22,7 +22,7 @@ export const createBooking = asyncHandler(async (req, res) => {
   const { netId, date, startTime, duration } = req.body;
   const userId = req.user.id;
 
-  if (!netId || !date || !startTime || !duration) {
+  if (!date || !startTime || !duration) {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
@@ -41,11 +41,8 @@ export const createBooking = asyncHandler(async (req, res) => {
   // Overlap check
   const overlap = await prisma.booking.findFirst({
     where: {
-      netId: netId,
-      AND: [
-        { startTime: { lt: end } },
-        { endTime: { gt: start } },
-      ],
+      startTime: { lt: end } ,
+      endTime: { gt: start } ,
     },
   });
 
@@ -56,7 +53,6 @@ export const createBooking = asyncHandler(async (req, res) => {
   const booking = await prisma.booking.create({
     data: {
       userId,
-      netId: netId,
       startTime: start,
       endTime: end,
       duration: parseInt(duration),

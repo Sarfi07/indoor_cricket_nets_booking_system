@@ -23,7 +23,6 @@ model User {
 model Booking {
   id        String   @id @default(uuid())
   userId    String
-  netId    String
   date      DateTime
   startTime DateTime
   endTime   DateTime
@@ -33,11 +32,6 @@ model Booking {
   user      User     @relation(fields: [userId], references: [id])
 }
 
-
-model Net {
-  id    String @id @default(uuid())
-  name  String @unique
-}
 
 enum Role {
   USER
